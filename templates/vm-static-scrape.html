@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>VM Access VMStaticScrape</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/vm-static-scrape.js"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">
+            {{ if .Create }}
+            New VM Static Scrape
+            {{ else }}
+            Edit VM Static Scrape
+            {{ end }}
+        </h1>
+
+        <div class="mb-4">
+            <a id="goToCluster" href="/clusters/{{.Cluster}}"
+                class="text-blue-600 hover:text-blue-700 font-semibold underline">
+                Go To Cluster: {{.Cluster}}
+            </a>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <form id="vmStaticScrapeForm" class="space-y-6">
+                <!-- Name -->
+                <div class="flex flex-col">
+                    <label for="name" class="mb-1 font-medium">Name</label>
+                    <input type="text" id="name" name="name" required
+                        class="w-full max-w-3xl px-3 py-2 border border-gray-300 rounded-md shadow-sm {{if not .Create}}bg-gray-100 border-gray-300{{end}} focus:outline-none focus:ring focus:border-blue-300"
+                        value="{{ .VMStaticScrape.Name }}" {{ if not .Create }}readonly{{ end }}>
+                </div>
+
+                <!-- Owner -->
+                <div class="flex flex-col">
+                    <label for="owner" class="mb-1 font-medium">Owner</label>
+                    <input type="text" id="owner" name="owner" required
+                        class="w-full max-w-3xl px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+                        value="{{ .VMStaticScrape.Meta.Owner }}" {{ if not .Create }}readonly{{ end }}>
+                </div>
+
+                <!-- Targets -->
+                <div class="flex flex-col">
+                    <label for="targets" class="mb-1 font-medium">Targets</label>
+                    <textarea id="targets" name="targets" rows="10"
+                        placeholder="Every target in a new line, in ip:port format, like 1.2.3.4:9100"
+                        class="w-full max-w-3xl px-3 py-2 border border-gray-300 rounded-md shadow-sm resize-y focus:outline-none focus:ring focus:border-blue-300">
+                    {{- range .VMStaticScrape.Endpoint.Targets -}}
+                    {{ . }}{{ "\n" }}
+                    {{- end -}}
+                </textarea>
+                </div>
+
+                <!-- Show Advanced Options -->
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="showAdvanced" name="showAdvanced"
+                        class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <label for="showAdvanced" class="font-medium">Show Advanced Options</label>
+                </div>
+
+                <!-- Advanced Options -->
+                <div id="advancedOptions" class="space-y-6 hidden">
+                    <!-- Path -->
+                    <div class="flex flex-col">
+                        <label for="path" class="mb-1 font-medium">Path</label>
+                        <input type="text" id="path" name="path"
+                            class="w-full max-w-3xl px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+                            value="{{ if .Create }}/metrics{{ else }}{{ .VMStaticScrape.Endpoint.Path }}{{ end }}">
+                    </div>
+
+                    <!-- Labels -->
+                    <div class="flex flex-col">
+                        <label for="labels" class="mb-1 font-medium">Labels</label>
+                        <textarea id="labels" name="labels" rows="5"
+                            placeholder="Every label in a new line, in key=value format, like k1=v1"
+                            class="w-full max-w-3xl px-3 py-2 border border-gray-300 rounded-md shadow-sm resize-y focus:outline-none focus:ring focus:border-blue-300">
+                    {{- range $key, $value := .VMStaticScrape.Endpoint.Labels -}}
+                    {{ $key }}={{ $value }}{{ "\n" }}
+                    {{- end -}}
+                </textarea>
+                    </div>
+
+                    <!-- Job Name -->
+                    <div class="flex flex-col">
+                        <label for="jobName" class="mb-1 font-medium">Job Name</label>
+                        <input type="text" id="jobName" name="jobName" placeholder="Same as Name if not specified"
+                            class="w-full max-w-3xl px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+                            value="{{ .VMStaticScrape.JobName }}">
+                    </div>
+                </div>
+
+                {{ if .Create }}
+                <!-- Submit -->
+                <div>
+                    <button type="submit" id="createVmStaticScrape"
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">
+                        Create
+                    </button>
+                </div>
+                {{ else }}
+                <!-- Submit -->
+                <div class="flex space-x-4">
+                    <button type="button" id="updateVmStaticScrape"
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">
+                        Update
+                    </button>
+                    <button type="button" id="deleteVmStaticScrape"
+                        class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                        Delete
+                    </button>
+                </div>
+                {{ end }}
+            </form>
+        </div>
+    </div>
+
+    {{ if .Create }}
+    <script>
+        document.getElementById('createVmStaticScrape').addEventListener('click', function (e) {
+            e.preventDefault();
+
+            createVmStaticScrape('/api/v1/{{.Cluster}}/vm-static-scrapes');
+        });
+    </script>
+    {{ else }}
+    <script>
+        document.getElementById('updateVmStaticScrape').addEventListener('click', function (e) {
+            e.preventDefault();
+
+            updateVmStaticScrape('/api/v1/{{.Cluster}}/vm-static-scrapes/{{.VMStaticScrape.Name}}');
+        });
+
+        document.getElementById('deleteVmStaticScrape').addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const confirm = window.confirm('Delete VMStaticScrape {{.VMStaticScrape.Name}}? This action is irreversible.');
+            if (!confirm) {
+                return;
+            }
+
+            deleteVmStaticScrape('/api/v1/{{.Cluster}}/vm-static-scrapes/{{.VMStaticScrape.Name}}');
+        });
+    </script>
+    {{ end }}
+    <script>
+        toggleAdvancedOptions();
+    </script>
+    <script type="application/json" id="page-data">
+        {
+            "cluster": "{{ .Cluster }}"
+        }
+    </script>
+</body>
+
+</html>
