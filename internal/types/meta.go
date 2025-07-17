@@ -50,7 +50,7 @@ func decodeTime(s string) time.Time {
 }
 
 const (
-	labelPrefix = "obs.minimax.com/"
+	labelPrefix = "vm-access/"
 
 	labelOwner     = labelPrefix + "owner"
 	labelCreateAt  = labelPrefix + "create-at"
