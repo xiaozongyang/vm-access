@@ -1,0 +1,3 @@
+- add deployment scripts
+- optimize README.md
+- integrate github CI
